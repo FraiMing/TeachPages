@@ -1,0 +1,48 @@
+# 把仓库根目录下的静态文件部署到 GitHub Pages
+# 触发条件：推送到 main 分支，或在 Actions 页面手动点击运行
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 允许 GITHUB_TOKEN 写入 Pages，并签发 id-token 用于部署
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只保留一个部署任务；新推送不打断正在进行的部署
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # 关联到 Pages 环境，部署后可在仓库首页看到站点地址
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # 1. 拉取仓库代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. 初始化 Pages（读取仓库的 Pages 配置）
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # 3. 打包要发布的静态文件
+      #    这里上传整个仓库根目录；如果你把站点放在 dist/ 或 public/，
+      #    就把 path 改成对应目录
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      # 4. 部署到 GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
